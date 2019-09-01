@@ -1,10 +1,3 @@
-/*
- * main.cpp
- *
- *  Created on: Jun 29, 2019
- *      Author: OS1
- */
-
 #include "SysCall.h"
 #include "PCB.h"
 

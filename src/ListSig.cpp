@@ -1,38 +1,40 @@
-#include "List.h"
-#include "PCB.h"
+#include "ListSig.h"
 
-PCB* List::pop(){
+SignalId ListSig::pop(){
 	if(first==0)
 		return 0;
-	PCB* p=first->ptr;
+	SignalId p=first->signal;
 	node* n=first;
 	first=first->next;
+	cnt--;
 	if(first==0) last=0;
 	delete n;
 	return p;
 }
 
-void List::push(PCB* p){
+void ListSig::push(SignalId p){
 	node* n=new node(p);
 	if(first==0)
 		first=n;
 	else
 		last->next=n;
 	last=n;
+	cnt++;
 }
-List::~List() {
+ListSig::~ListSig() {
 	node *tek=first;
 	while (first!=0){
         tek=first;
 		first=first->next;
 		delete tek;
 	}
+	cnt=0;
 }
 
-void List::remove(PCB* p){
+void ListSig::remove(SignalId p){
     node* tek = first, *prev=0;
 	while (tek != 0) {
-		if (tek->ptr == p) {
+		if (tek->signal == p) {
 			if (prev != 0) {
 				prev->next = tek->next;
 				delete tek;
@@ -40,21 +42,11 @@ void List::remove(PCB* p){
 			} else {
 				first = tek->next;
 				if (first == 0) last = 0;
-				delete tek;
                 return;
 			}
+			cnt--;
 		}
 		prev = tek;
 		tek = tek->next;
 	}
-}
-
-Thread* List::getThreadById(ID id) {
-	node* p = first;
-	while (p) {
-		if (p->ptr->id == id) break;
-		p = p->next;
-	}
-	if (!p) return 0;
-	return p->ptr->mythread;
 }
