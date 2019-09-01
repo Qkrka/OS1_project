@@ -33,6 +33,7 @@ void List::remove(PCB* p){
     node* tek = first, *prev=0;
 	while (tek != 0) {
 		if (tek->ptr == p) {
+            tek->next = 0;
 			if (prev != 0) {
 				prev->next = tek->next;
 				delete tek;
@@ -40,7 +41,6 @@ void List::remove(PCB* p){
 			} else {
 				first = tek->next;
 				if (first == 0) last = 0;
-				delete tek;
                 return;
 			}
 		}

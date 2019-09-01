@@ -3,10 +3,12 @@
 
 #include "IVTEntry.h"
 #include "SCHEDULE.h"
-typedef unsigned char IVTNo;
-class PCB;
 
+class PCB;
+class Event;
+typedef unsigned char IVTNo;
 class KernelEv{
+
 public:
 	KernelEv(IVTNo n);
 	~KernelEv();
@@ -14,11 +16,11 @@ public:
 	void signal();
 	void wait();
 
-	PCB * owner;
-	int val;
 	IVTNo ivtNum;
+	PCB * caller;
+	int val;
 
 };
 
 
-#endif
+#endif /* H_KEVENT_H_ */

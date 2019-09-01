@@ -22,6 +22,7 @@ IVTEntry::~IVTEntry() {
 #endif
 	IVT[ivtNum]=0;
     callOldInt();
+    //callOld?
 }
 
 

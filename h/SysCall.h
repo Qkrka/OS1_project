@@ -1,5 +1,5 @@
-#ifndef SYSCALL_H_
-#define SYSCALL_H_
+#ifndef _SYSCALL_H_
+#define _SYSCALL_H_
 
 #include "PCB.h"
 typedef void interrupt (*pInterrupt)(...); 

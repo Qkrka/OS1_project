@@ -7,25 +7,23 @@ PCB* PCB::running = 0;
 PCB* PCB::idle = 0;
 List PCB::PCBs;
 
-PCB::PCB() {
-	id = -1;
-	working = 0;
-	done = 0;
-	stack = NULL;
+
+PCB::PCB(){
+	id=-1;
+	working=0;
+	done=0;
+	stack=NULL;
 	waitRet = 1;
-	mythread = 0;
-	toKill = 0;
 }
 
-PCB::PCB(StackSize size, Time t, Thread* thr) {
+PCB::PCB(StackSize stackSize, Time t, Thread* thr) {
 	waitRet = 1;
 	PCBs.push(this);
 
 	this->timeSlice = timeSlice;
-//	int size = stackSize / 2;
-//	stack=new unsigned[size];
-	size /= 2;
-	stack = new unsigned[size];
+	int size = stackSize / 2;
+	stack=new unsigned[size];
+/* 
 	int thrSeg, thrOff;
 #ifndef BCC_BLOCK_IGNORE
 	thrSeg = FP_SEG(thr);
@@ -33,7 +31,7 @@ PCB::PCB(StackSize size, Time t, Thread* thr) {
 #endif
 
 	stack[size - 1] = thrSeg;
-	stack[size - 2] = thrOff;
+	stack[size - 2] = thrOff;*/
 	stack[size - 5] = 0x200;
 #ifndef BCC_BLOCK_IGNORE
 	stack[size - 6] = FP_SEG(wrapper);
@@ -48,17 +46,16 @@ PCB::PCB(StackSize size, Time t, Thread* thr) {
 	mythread = thr;
 	done = 0;
 	working = 0;
-	toKill = 0;
 	id = IDs++;
 
 }
 
-PCB::PCB(StackSize size) {
+PCB::PCB(StackSize stackSize) {
 	waitRet = 1;
-//	PCBs.push(this);
+	PCBs.push(this);
 	timeSlice = 1;
-	size /= 2;
-	stack = new unsigned[size];
+	int size = stackSize / 2;
+
 	stack[size - 5] = 0x200;
 #ifndef BCC_BLOCK_IGNORE
 	stack[size - 6] = FP_SEG(idleWrapper);
@@ -72,66 +69,45 @@ PCB::PCB(StackSize size) {
 	done = 0;
 	working = 1;
 	id = 0;
-	toKill = 0;
 }
 
-int syscall = 0;
 
-void PCB::wrapper(Thread* me) {
+void PCB::wrapper() {
 	running->mythread->run();
 	//printf("endofrun\n");
 	while (!running->waiting.isEmpty()) {
 		PCB* p = PCB::running->waiting.pop();
-		p->working = 1;
+		p->working=1;
 		Scheduler::put(p);
-	}
 
-	lock();
-	syscall = 1;
-	if (running->mythread) {
-		running->mythread->signal(2);
-//		printf("parent = %p\n", running->mythread->parent);
-		if (running->mythread->parent) {
-//			printf("signalin 1\n");
-			running->mythread->parent->signal(1);
-		}
 	}
-	syscall = 0;
-	unlock();
-//	printf("sad cu da te sredim id=%d\n", running->id);
-	if (running->mythread)
-		running->mythread->handle();
-//	printf("sredio id= %d\n", running->id);
-
 	running->working = 0;
-	running->toKill = 1;
 	dispatch();
 }
-void PCB::idleWrapper() {
+void PCB::idleWrapper(Thread* running) {
 	while (1) {
 		//printf("idle");
 	}
 }
 
+
 PCB::~PCB() {
-//	printf("pcb destr\n");
 	PCBs.remove(this);
-	if(stack!=0)delete stack;
+	delete stack;
 }
 
 void PCB::startPCB() {
-//	printf("StartPCB usao ");
+	//printf("StartPCB usao ");
 	if (!working) {
 		working = 1;
-//		printf("i Ubacio %d  working = %d\n", id, working);
-
+		//printf("i Ubacio %d \n", id);
 		Scheduler::put(this);
 	}
 }
 
 void PCB::waitToComplete() {
-//	printf("nit %d status %d\n", id, working);
-	if (toKill == 0) {
+	if (working) {
+		printf("w8complete is working ==1\n");
 		running->working = 0;
 		waiting.push(running);
 		dispatch();

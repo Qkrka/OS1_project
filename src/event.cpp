@@ -1,62 +1,29 @@
 #include "event.h"
 #include "Lock.h"
 
+// Konstruktor
 Event::Event(IVTNo ivtNo){
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		pushf;
-		cli;
-	}
-#endif
+	locki();
 	myImpl = new KernelEv(ivtNo);
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		popf;
-	}
-#endif
+	unlocki();
 }
 
+// Destruktor
 Event::~Event(){
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		pushf;
-		cli;
-	}
-#endif
+	locki();
 	delete myImpl;
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		popf;
-	}
-#endif
+	unlocki();
 }
 
+// Sacekaj
 void Event::wait(){
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		pushf;
-		cli;
-	}
-#endif
+	locki();
 	myImpl->wait();
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		popf;
-	}
-#endif
+	unlocki();
 }
 
 void Event::signal(){
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		pushf;
-		cli;
-	}
-#endif
+	locki();
 	myImpl -> signal();
-#ifndef BCC_BLOCK_IGNORE
-	asm {
-		popf;
-	}
-#endif
+	unlocki();
 }

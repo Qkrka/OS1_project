@@ -1,28 +1,60 @@
 #include "SysCall.h"
-#include <dos.h>
+
 #include "KerSem.h"
 #include "Lock.h"
 
-pInterrupt oldTimer;
+unsigned oldTimerOFF, oldTimerSEG; // stara prekidna rutina
 
-void inic() {
-#ifndef BCC_BLOCK_IGNORE
-	asm cli;
-	oldTimer=getvect(0x0008);
-	setvect(0x0008,timer);
-	asm sti;
-#endif
-PCB::idle=new PCB(500);
-PCB* mainPCB = new PCB();
-PCB::running=mainPCB;
+void inic(){
+	asm{
+		cli
+		push es
+		push ax
+
+		mov ax,0   //  ; inicijalizuje rutinu za tajmer
+		mov es,ax
+
+		mov ax, word ptr es:0022h //; pamti staru rutinu
+		mov word ptr oldTimerSEG, ax	
+		mov ax, word ptr es:0020h	
+		mov word ptr oldTimerOFF, ax	
+
+		mov word ptr es:0022h, seg timer	 //postavlja 
+		mov word ptr es:0020h, offset timer //novu rutinu
+
+		mov ax, oldTimerSEG	 //	postavlja staru rutinu	
+		mov word ptr es:0182h, ax //; na int 60h
+		mov ax, oldTimerOFF
+		mov word ptr es:0180h, ax
+
+		pop ax
+		pop es
+		sti
+	}
+	PCB::idle=new PCB(500);
+	PCB* mainPCB=new PCB();
+	PCB::running=mainPCB;
 }
 
-void restore() {
-#ifndef BCC_BLOCK_IGNORE
-	asm cli;
-	setvect(0x0008,oldTimer);
-	asm sti;
-#endif
+void restore(){
+	asm {
+		cli
+		push es
+		push ax
+
+		mov ax,0
+		mov es,ax
+
+
+		mov ax, word ptr oldTimerSEG
+		mov word ptr es:0022h, ax
+		mov ax, word ptr oldTimerOFF
+		mov word ptr es:0020h, ax
+
+		pop ax
+		pop es
+		sti
+	}
 }
 
 unsigned tsp;
@@ -34,90 +66,49 @@ extern int tick();
 extern volatile int lockFlag;
 
 #include "stdio.h"
-
-PCB* temp = 0;
-
-void interrupt timer(...) {
+void interrupt timer(...){	// prekidna rutina
 //	printf("timer\n");
-if (!context_swap_req) {
-cnt--;
-tick();
-//printf("dectime");
-KernelSem::sems.decTime();
-(*oldTimer)();
-}
-	//	printf("contswreq = %d",context_swap_req);
-if (cnt <= 0 || context_swap_req) {
-if (!lockFlag) {
-
-#ifndef BCC_BLOCK_IGNORE
+	if (!context_swap_req) {
+		cnt--; 
+		tick();
+		KernelSem::sems.decTime();
+		asm int 60h;
+	}
+//	printf("contswreq = %d",context_swap_req);
+	if (cnt <= 0 || context_swap_req) {
+		if(!lockFlag){
 		asm {
 			mov tsp, sp
 			mov tss, ss
-			mov tbp, bp
+            mov tbp, bp
 		}
-#endif
+
 		PCB::running->sp = tsp;
 		PCB::running->ss = tss;
-		PCB::running->bp = tbp;
-
-		if (PCB::running->toKill == 1)
-			temp = PCB::running;
-
-		if (PCB::running != PCB::idle && PCB::running->working != 0 && PCB::running->toKill == 0) {
-//			printf("scheduler put");
+        PCB::running->bp = tbp;
+        
+        if (PCB::running != PCB::idle && PCB::running->working!=0){
 			Scheduler::put(PCB::running);
 		}
-		
-	do {
 		PCB::running = Scheduler::get();
-	} while (PCB::running->toKill == 1);
-		//		printf("got id = %d\n",PCB::running->id);
+//		printf("got id = %d\n",PCB::running->id);
 		if (!PCB::running) {
-			PCB::running = PCB::idle;
-		}
-		//		printf("nit %d status %d\n", PCB::running->id, PCB::running->working);
-		cnt = PCB::running->timeSlice;
+            PCB::running = PCB::idle;
+        }
+        cnt=PCB::running->timeSlice;
 
 		tsp = PCB::running->sp;
-		tss = PCB::running->ss;
-		tbp = PCB::running->bp;
-#ifndef BCC_BLOCK_IGNORE
+		tss = PCB::running->ss; 
+        tbp = PCB::running->bp;
+
 		asm {
 			mov sp, tsp   // restore sp
 			mov ss, tss
-			mov bp, tbp
-		}
-#endif
-
-//		printf("trenutno %d\n", PCB::running->id);
-		if (temp != 0) {
-//			printf("ubijam %d\n", temp->id);
-//			printf("u kontekstu : %d\n", PCB::running->id);
-
-			while (!temp->waiting.isEmpty()) {
-				PCB* tek = temp->waiting.pop();
-				tek->working = 1;
-//				printf("stavio id=%d\n", tek->id);
-				Scheduler::put(tek);
-			}
-			temp->working = 0;
-			delete temp->stack;
-			temp->stack = 0;
-			temp = 0;
-//			printf("%d\n", temp);
-		}
-
+            mov bp, tbp
+		}     
 		context_swap_req = 0;
-
-		//printf("sacu handlujem");
-		if (PCB::running != PCB::idle && PCB::running->mythread != 0) {
-			PCB::running->mythread->handle();
-		}
-
-
-} else
-	context_swap_req = 1;
+	} 
+	else context_swap_req=1;
 
 }
 }

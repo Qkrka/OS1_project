@@ -11,17 +11,12 @@ KernelSem::KernelSem(int v) {
 
 KernelSem::~KernelSem() {
 	PCB* ptr;
-//	printf("KERSEM DESTR\n");
-	while (!valBlk.isEmpty()){
-		PCB* tek=valBlk.pop();
-		tek->working=1;
-		Scheduler::put(tek);
-	}
-	while (!timeBlk.isEmpty()){
-		PCB* tek=timeBlk.pop();
-		tek->working=1;
+	while (!valBlk.isEmpty())
+		Scheduler::put(valBlk.pop());
+
+	while (!timeBlk.isEmpty())
 		Scheduler::put(timeBlk.pop());
-	}
+	
     sems.remove(this);
 }
 
@@ -32,7 +27,6 @@ int KernelSem::wait(Time maxTimeToWait) {
 		if (maxTimeToWait == 0) {
 			valBlk.push(PCB::running);
 		} else {
-//			printf("timeblkadd id: %d\n",PCB::running->id);
 			timeBlk.add(PCB::running, maxTimeToWait);
 		}
 		unlock();

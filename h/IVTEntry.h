@@ -13,24 +13,47 @@ void interrupt newintr##intNo(...) { \
 		newivte##intNo.callOldInt(); \
 	} \
 }
-
+//
+//#define PREPAREENTRY(intNo, callOld) \
+//void interrupt newInt##intNo(...); \
+//IVTEntry newEntry##intNo(intNo, newInt##intNo); \
+//void interrupt newInt##intNo(...) { \
+//	if (callOld) { \
+//		newEntry##intNo.callOldInt(); \
+//	} \
+//	newEntry##intNo.signal(); \
+//}
 
 typedef unsigned char IVTNo;
 class KernelEv;
 
 class IVTEntry{
 public:
-	KernelEv* ev;
+	// Vektor prekida
     pInterrupt oldInt, newInt;
+	KernelEv* ev;
 	IVTNo ivtNum;
 
 	IVTEntry(IVTNo n, pInterrupt p);
 	~IVTEntry();
 
-	void callOldInt(){ if(oldInt) (*oldInt)();};
+	void callOldInt(){ if(oldInt) (*oldInt)();}; // Zovi staru prekidnu rutinu
 	void signal();
 
     static IVTEntry* IVT[256];
+    /*
+    IVTEntry(IVTNo ivtN,pInterrupt tR);
+	~IVTEntry();
+	void signal();
+	void callOldI(){
+		if(oldR!=0)
+			(*oldR)();
+	};
+
+	static IVTEntry *IVTP[256];
+	IVTNo ivtN;
+	KernelEv *ev;
+	pInterrupt oldR,newR; */
 };
 
 #endif
