@@ -5,8 +5,4 @@
 void lock();
 void unlock();
 
-#define locki() { asm pushf; asm cli; }
-
-#define unlocki() { asm popf; }
-
 #endif

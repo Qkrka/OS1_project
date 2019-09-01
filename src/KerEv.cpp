@@ -3,50 +3,32 @@
 #include "PCB.h"
 
 KernelEv::KernelEv(IVTNo n) {
-	caller = PCB::running;
-
-	ivtNum = n;
 	val = 0;
-
-	// Povezujemo sa tabelom
+	owner = PCB::running;
+	ivtNum = n;
 	IVTEntry * newEntry = IVTEntry::IVT[ivtNum];
-
-	if (newEntry && newEntry->ev == 0) //da li je preparovan?
+	if (newEntry && newEntry->ev == 0)
 		newEntry->ev = this;
-
 }
 
 KernelEv::~KernelEv() {
-	// Zovemo signal da odblokiramo
-	signal(); //smem li ovo da radim ili samo da putujem u sched?
-
-	// Brisemo ulaz
-	if (IVTEntry::IVT[ivtNum]
-			&& IVTEntry::IVT[ivtNum]->ev == this) // ako je ovaj ulaz odgovarajuc za ovu
-		IVTEntry::IVT[ivtNum]->ev = 0; // raskidamo vezu
+	signal();
+	if (IVTEntry::IVT[ivtNum] && IVTEntry::IVT[ivtNum]->ev == this)
+		IVTEntry::IVT[ivtNum]->ev = 0;
 }
-
-// Signal binarnom semaforu
-void KernelEv::signal() {
-	if (val == 0) {
-		val = 1;
-		caller->working = 1;
-		Scheduler::put(caller); //ubaci se u scheduler
-
-		dispatch(); //dispatch na neku novu nit
-	}
-}
-
 void KernelEv::wait() {
-
-	// ako je running caller moze uopste da se waituj
-	if (PCB::running == caller) {
-
+	if (owner == PCB::running) {
 		val = 0;
-		caller->working = 0; //nece uci u scheduler
+		owner->working = 0;
 		dispatch();
-
 	}
-
+}
+void KernelEv::signal() {
+	if (!val) {
+		val = 1;
+		owner->working = 1;
+		Scheduler::put(owner);
+		dispatch();
+	}
 }
 
